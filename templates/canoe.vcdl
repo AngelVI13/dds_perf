@@ -1,0 +1,34 @@
+version 2.0;
+import module "DDS";
+namespace vehicles
+{
+  struct Vehicle
+  {
+    [DDS::IsKey=true]
+    string name;
+
+    float speed;
+    int64 distance;
+  }
+
+  [CommunicationPattern=SendReceive]
+  [Binding="DDS"]
+  [DDS::Domain::ID=0]  
+  [DDS::Domain::Monitoring=ALL]
+  interface IMonitor
+  {
+    // Topics subscribed by CANoe
+    {{ range . }}
+    [DDS::Topic::Name="{{ .TopicName }}"]
+    consumed data vehicles::Vehicle {{ .Name }};
+
+    {{ end }}
+  }
+
+  // Subscribes
+  [DDS::Reader::Reliability=BEST_EFFORT]
+  [DDS::Reader::History=KEEP_ALL]
+  [DDS::Reader::Durability=VOLATILE]
+  [DDS::Reader::Ownership=EXCLUSIVE]
+  IMonitor Monitor;
+}
