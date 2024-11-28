@@ -57,6 +57,7 @@ func createPublisherProcesses(data []PublisherData, tmpl *template.Template) err
 	}
 	defer os.RemoveAll(tempDir)
 
+	// TODO: create and manage processes
 	for i, d := range data {
 		f, err := os.CreateTemp(tempDir, "pub")
 		if err != nil {
@@ -72,9 +73,26 @@ func createPublisherProcesses(data []PublisherData, tmpl *template.Template) err
 	return nil
 }
 
+func createVCDL(data []PublisherData, tmpl *template.Template, filename string) error {
+	os.Remove(filename)
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create vcdl file %q: %v", filename, err)
+	}
+	defer f.Close()
+
+	err = tmpl.Execute(f, data)
+	if err != nil {
+		log.Fatalf("failed to execute template %q: %v", tmpl.Name(), err)
+	}
+
+	return nil
+}
+
 func main() {
 	var args struct {
-		PubNum int `arg:"-n,--num"     default:"100"   help:"Number of publishers to start"`
+		PubNum int    `arg:"-n,--num"     default:"10"   help:"Number of publishers to start"`
+		VCDL   string `arg:"-v,--vcdl"     default:"perf.vcdl"   help:"Name of vCDL file to generate."`
 	}
 	arg.MustParse(&args)
 
@@ -95,8 +113,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = vcdlTemplate.Execute(os.Stdout, data)
+	err = createVCDL(data, vcdlTemplate, args.VCDL)
 	if err != nil {
-		log.Fatalf("failed to execute template %q: %v", vcdlTemplate.Name(), err)
+		log.Fatal(err)
 	}
 }
