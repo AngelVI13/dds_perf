@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 	"text/template"
 
 	"github.com/alexflint/go-arg"
@@ -50,27 +52,47 @@ func createPublisherData(n int) []PublisherData {
 	return data
 }
 
-func createPublisherProcesses(data []PublisherData, tmpl *template.Template) error {
+func createPublisherProcesses(
+	data []PublisherData,
+	tmpl *template.Template,
+) ([]*exec.Cmd, string, error) {
 	tempDir, err := os.MkdirTemp("./", "temp")
 	if err != nil {
-		return fmt.Errorf("failed to create temp dir: %v", err)
+		return nil, "", fmt.Errorf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
-	// TODO: create and manage processes
+	var processes []*exec.Cmd
+	step := len(data) / 10
+
 	for i, d := range data {
 		f, err := os.CreateTemp(tempDir, "pub")
 		if err != nil {
-			return fmt.Errorf("failed to create temp file %d: %v", i, err)
+			return nil, "", fmt.Errorf("failed to create temp file %d: %v", i, err)
 		}
 
 		err = tmpl.Execute(f, d)
 		if err != nil {
-			return fmt.Errorf("failed to execute template %q: %v", tmpl.Name(), err)
+			return nil, "", fmt.Errorf(
+				"failed to execute template %q: %v",
+				tmpl.Name(),
+				err,
+			)
+		}
+
+		cmd := exec.Command("/home/angel/.pyenv/shims/python3.10", f.Name())
+		err = cmd.Start()
+		if err != nil {
+			log.Printf("failed to start process: %d (%q): %v", i, f.Name(), err)
+			continue
+		}
+
+		processes = append(processes, cmd)
+		if i%step == 0 {
+			log.Printf("started n=%d", i+1)
 		}
 	}
 
-	return nil
+	return processes, tempDir, nil
 }
 
 func createVCDL(data []PublisherData, tmpl *template.Template, filename string) error {
@@ -108,7 +130,7 @@ func main() {
 
 	data := createPublisherData(args.PubNum)
 
-	err = createPublisherProcesses(data, publisherTemplate)
+	pubProcesses, tempDir, err := createPublisherProcesses(data, publisherTemplate)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,4 +139,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Println("all processes are running. Press enter to stop")
+	fmt.Scanf("%s\n")
+	log.Println("cleaning up")
+
+	for _, p := range pubProcesses {
+		err := p.Process.Kill()
+		if err != nil {
+			log.Printf("failed to kill process: %s: %v", strings.Join(p.Args, " "), err)
+		}
+	}
+
+	os.RemoveAll(tempDir)
 }
