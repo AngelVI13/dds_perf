@@ -55,6 +55,7 @@ func createPublisherData(n int) []PublisherData {
 func createPublisherProcesses(
 	data []PublisherData,
 	tmpl *template.Template,
+	pythonExec string,
 ) ([]*exec.Cmd, string, error) {
 	tempDir, err := os.MkdirTemp("./", "temp")
 	if err != nil {
@@ -62,7 +63,12 @@ func createPublisherProcesses(
 	}
 
 	var processes []*exec.Cmd
-	step := len(data) / 10
+	var step int
+	if len(data) < 10 {
+		step = 1
+	} else {
+		step = len(data) / 10
+	}
 
 	for i, d := range data {
 		f, err := os.CreateTemp(tempDir, "pub")
@@ -79,7 +85,7 @@ func createPublisherProcesses(
 			)
 		}
 
-		cmd := exec.Command("/home/angel/.pyenv/shims/python3.10", f.Name())
+		cmd := exec.Command(pythonExec, f.Name())
 		err = cmd.Start()
 		if err != nil {
 			log.Printf("failed to start process: %d (%q): %v", i, f.Name(), err)
@@ -113,8 +119,9 @@ func createVCDL(data []PublisherData, tmpl *template.Template, filename string) 
 
 func main() {
 	var args struct {
-		PubNum int    `arg:"-n,--num"     default:"10"   help:"Number of publishers to start"`
-		VCDL   string `arg:"-v,--vcdl"     default:"perf.vcdl"   help:"Name of vCDL file to generate."`
+		PubNum     int    `arg:"-n,--num"     default:"10"          help:"Number of publishers to start"`
+		PythonExec string `arg:"-p,--py"      default:"python"      help:"Python executable path"`
+		VCDL       string `arg:"-v,--vcdl"    default:"perf.vcdl"   help:"Name of vCDL file to generate."`
 	}
 	arg.MustParse(&args)
 
@@ -130,7 +137,7 @@ func main() {
 
 	data := createPublisherData(args.PubNum)
 
-	pubProcesses, tempDir, err := createPublisherProcesses(data, publisherTemplate)
+	pubProcesses, tempDir, err := createPublisherProcesses(data, publisherTemplate, args.PythonExec)
 	if err != nil {
 		log.Fatal(err)
 	}
