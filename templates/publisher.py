@@ -1,5 +1,6 @@
 import time
 import random
+import logging
 
 from cyclonedds.core import Qos, Policy
 from cyclonedds.domain import DomainParticipant
@@ -11,6 +12,10 @@ from dataclasses import dataclass
 import cyclonedds.idl as idl
 import cyclonedds.idl.annotations as annotate
 import cyclonedds.idl.types as types
+
+
+FORMAT = '%(asctime)s: %(message)s'
+logging.basicConfig(format=FORMAT)
 
 
 @dataclass
@@ -40,10 +45,9 @@ writer = DataWriter(publisher, topic)
 
 vehicle = Vehicle(name="{{.Name}}", speed={{.Value}}, distance=0)
 
-
 while True:
     vehicle.distance += random.randint(1, 10)
     vehicle.speed = round(vehicle.speed * random.choice([0.8, 0.9, 1.0, 1.1, 1.2]), 1)
     writer.write(vehicle)
-    print(f">> Wrote vehicle: {vehicle}")
+    logging.info(f"{vehicle}")
     time.sleep(0.25)
