@@ -46,4 +46,4 @@ while True:
     vehicle.speed = round(vehicle.speed * random.choice([0.8, 0.9, 1.0, 1.1, 1.2]), 1)
     writer.write(vehicle)
     print(f">> Wrote vehicle: {vehicle}")
-    time.sleep(random.random() * 0.9 + 0.1)
+    time.sleep(0.25)

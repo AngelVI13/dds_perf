@@ -71,7 +71,7 @@ func createPublisherProcesses(
 	}
 
 	for i, d := range data {
-		f, err := os.CreateTemp(tempDir, "pub")
+		f, err := os.CreateTemp(tempDir, "dds_pub")
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create temp file %d: %v", i, err)
 		}
