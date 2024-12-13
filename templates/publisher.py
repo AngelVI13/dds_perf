@@ -15,7 +15,7 @@ import cyclonedds.idl.types as types
 
 
 FORMAT = '%(asctime)s: %(message)s'
-logging.basicConfig(format=FORMAT)
+logging.basicConfig(format=FORMAT, level=logging.INFO)
 
 
 @dataclass
