@@ -122,6 +122,7 @@ func main() {
 		PubNum     int    `arg:"-n,--num"     default:"10"          help:"Number of publishers to start"`
 		PythonExec string `arg:"-p,--py"      default:"python"      help:"Python executable path"`
 		VCDL       string `arg:"-v,--vcdl"    default:"perf.vcdl"   help:"Name of vCDL file to generate."`
+		MultiVCDL  string `arg:"-u,--multi-vcdl"    default:"multi_perf.vcdl"   help:"Name of multi vCDL file to generate."`
 	}
 	arg.MustParse(&args)
 
@@ -135,14 +136,28 @@ func main() {
 		log.Fatal(err)
 	}
 
+	multiVcdlTemplate, err := createTemplate("vcdl", "./templates/multi_canoe.vcdl")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	data := createPublisherData(args.PubNum)
 
-	pubProcesses, tempDir, err := createPublisherProcesses(data, publisherTemplate, args.PythonExec)
+	pubProcesses, tempDir, err := createPublisherProcesses(
+		data,
+		publisherTemplate,
+		args.PythonExec,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = createVCDL(data, vcdlTemplate, args.VCDL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = createVCDL(data, multiVcdlTemplate, args.MultiVCDL)
 	if err != nil {
 		log.Fatal(err)
 	}
